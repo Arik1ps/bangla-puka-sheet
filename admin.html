@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>বাংলা পুকা অ্যাডমিন প্যানেল</title>
+  <link href="https://fonts.googleapis.com/css2?family=SolaimanLipi&display=swap" rel="stylesheet">
+  <style>
+    body { font-family:'SolaimanLipi', sans-serif; background:#f1f8e9; padding:20px; }
+    h1 { text-align:center; color:#33691e; margin-bottom:25px; }
+    #logoutBtn { background:#c62828; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; float:right; margin-bottom:10px; }
+    #logoutBtn:hover { background:#8e0000; }
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { border:1px solid #c5e1a5; padding:8px 12px; text-align:left; }
+    th { background:#aed581; color:#33691e; }
+    tr:nth-child(even) { background:#f9fbe7; }
+    #downloadBtn { background:#2e7d32; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; margin-top:15px; }
+    #downloadBtn:hover { background:#1b5e20; }
+  </style>
+</head>
+<body>
+
+<h1>বাংলা পুকা সদস্য তালিকা</h1>
+<button id="logoutBtn">লগআউট</button>
+<table id="dataTable">
+  <thead></thead>
+  <tbody></tbody>
+</table>
+<button id="downloadBtn">CSV ডাউনলোড করুন</button>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const password = urlParams.get("password");
+
+  if (!password) {
+    alert("অনুমতি নেই। লগইন করুন।");
+    window.location.href = "admin-login.html";
+  }
+
+  const FORM_URL = "https://script.google.com/macros/s/AKfycbw1Ch8MBnV7Dk3p9_JOtKmG1IfFjxlZ6a0ATqNqOPshMMwmN7eaST2YDbU5ptGvwcs5/exec";
+  const tableHead = document.querySelector("#dataTable thead");
+  const tableBody = document.querySelector("#dataTable tbody");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const downloadBtn = document.getElementById("downloadBtn");
+
+  logoutBtn.addEventListener("click", () => {
+    window.location.href = "admin-login.html";
+  });
+
+  async function loadData() {
+    try {
+      const res = await fetch(FORM_URL + "?action=getAllData&password=" + encodeURIComponent(password));
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message);
+        window.location.href = "admin-login.html";
+        return;
+      }
+
+      tableHead.innerHTML = "<tr>" + data.headers.map(h => "<th>"+h+"</th>").join("") + "</tr>";
+      tableBody.innerHTML = "";
+      data.rows.forEach(row => {
+        const tr = document.createElement("tr");
+        row.forEach(cell => { tr.innerHTML += "<td>"+cell+"</td>"; });
+        tableBody.appendChild(tr);
+      });
+    } catch (err) {
+      alert("ডাটা লোড করতে সমস্যা হয়েছে। পরে চেষ্টা করুন।");
+    }
+  }
+
+  downloadBtn.addEventListener("click", () => {
+    let csv = dataTableToCSV();
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "বাংলা_পুকা_সদস্য_তালিকা.csv";
+    link.click();
+  });
+
+  function dataTableToCSV() {
+    let rows = [];
+    const trs = tableBody.querySelectorAll("tr");
+    trs.forEach(tr => {
+      const tds = Array.from(tr.querySelectorAll("td"));
+      rows.push(tds.map(td => `"${td.textContent}"`).join(","));
+    });
+    const header = Array.from(tableHead.querySelectorAll("th")).map(th => `"${th.textContent}"`).join(",");
+    rows.unshift(header);
+    return rows.join("\n");
+  }
+
+  loadData();
+</script>
+
+</body>
+</html>
